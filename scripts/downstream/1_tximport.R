@@ -17,26 +17,13 @@ library(tximport)
 library(DESeq2)
 library(EnsDb.Hsapiens.v86)
 
-
-# Get the mapping from transcript IDs to gene symbols 
-# What are the columns in the database?
-columns(EnsDb.Hsapiens.v86)
-
-# Get the TXID and SYMBOL columns for all entries in database
-tx2gene <- AnnotationDbi::select(EnsDb.Hsapiens.v86, 
-                                   keys = keys(EnsDb.Hsapiens.v86),
-                                   columns = c('TXID', 'SYMBOL'))
-
-# Remove the gene ID column
-tx2gene <- dplyr::select(tx2gene, -GENEID)
-
 # Get the quant files and metadata
 # Collect the sample quant files
-samples <- list.dirs('outputs/Salmon_out', recursive = FALSE, full.names = FALSE)
+samples <- list.dirs('inputs/Salmon_out', recursive = FALSE, full.names = FALSE)
 samples
 
 # check quant files 
-quant_files <- file.path('outputs/Salmon_out', samples, 'quant.sf')
+quant_files <- file.path('inputs/Salmon_out', samples, 'quant.sf')
 quant_files
 
 # sample names 
@@ -58,6 +45,18 @@ col_data <- data.frame(
 # condition as factor 
 col_data$condition <- factor(col_data$condition)
 
+# Get the mapping from transcript IDs to gene symbols 
+# What are the columns in the database?
+columns(EnsDb.Hsapiens.v86)
+
+# Get the TXID and SYMBOL columns for all entries in database
+tx2gene <- AnnotationDbi::select(EnsDb.Hsapiens.v86, 
+                                   keys = keys(EnsDb.Hsapiens.v86),
+                                   columns = c('TXID', 'SYMBOL'))
+
+# Remove the gene ID column
+tx2gene <- dplyr::select(tx2gene, -GENEID)
+
 
 # Compile the tximport counts object and make DESeq dataset
 # Get tximport counts object
@@ -66,21 +65,38 @@ txi <- tximport(files = quant_files,
                 tx2gene = tx2gene,
                 ignoreTxVersion = TRUE)
 
+# class of txi 
+class(txi)
+
+# raw counts 
+raw_counts <- txi$counts
+write.csv(raw_counts, "outputs/tables/raw_counts.csv", row.names = FALSE)
+write_rds(raw_counts, "outputs/tables/raw_counts.rds")
+
+
+# TPM 
+tpm_counts <- txi$abundance
+write.csv(tpm_counts, "outputs/tables/tpm_counts.csv", row.names = FALSE)
+write_rds(tpm_counts, "outputs/tables/tpm_counts.rds")
+
 # Make DESeq dataset
 dds <- DESeqDataSetFromTximport(txi = txi,
                                 colData = col_data,
                                 design = ~condition)
 
-# Do DESeq analysis
-# PCA
-vsd <- vst(dds)
-plotPCA(vsd)
+# Principal Component Analysis 
+rlog_dds <- rlog(dds)
 
-# DEG analysis
+pca_data <- plotPCA(rlog_dds, intgroup = "condition", returnData = TRUE)
+write_rds(pca_data, "outputs/tables/pca_data.rds")
+
+# Differential Gene Expression Analysis 
 dds <- DESeq(dds)
 
 # Get the results
 resdf <- results(dds)
+
+write_rds(resdf, "outputs/tables/res_dds.rds")
 
 # MA plot 
 plotMA(resdf)
@@ -91,7 +107,7 @@ resdf$gene <- rownames(resdf)
 rownames(resdf) <- NULL
 
 # Write to CSV file
-write.csv(resdf, file = "outputs/DESeq2_results.csv", row.names = FALSE)
+write.csv(resdf, file = "outputs/Tables/DESeq2_results.csv", row.names = FALSE)
 
 # Save as RDS (for reloading in R later)
-saveRDS(resdf, file = "outputs/DESeq2_results.rds")
+saveRDS(resdf, file = "outputs/Tables/DESeq2_results.rds")
