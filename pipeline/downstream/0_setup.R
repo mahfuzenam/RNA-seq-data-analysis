@@ -9,7 +9,7 @@ core_packages <- c("tidyverse", "ggpubr", "ggsci","RColorBrewer","cowplot", "pat
 install.packages(core_packages)
 
 # 2. Bioconductor packages 
-bioconductor_packages <- c("tximport", "DESeq2", "EnsDb.Hsapiens.v86", "EnhancedVolcano")
+bioconductor_packages <- c("tximport", "DESeq2", "EnsDb.Hsapiens.v86", "EnhancedVolcano", "clusterProfiler", "org.Hs.eg.db", "enrichplot", "GOSemSim")
 BiocManager::install(bioconductor_packages)
 
 # Install in

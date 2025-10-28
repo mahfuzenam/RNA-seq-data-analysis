@@ -84,11 +84,13 @@ dds <- DESeqDataSetFromTximport(txi = txi,
                                 colData = col_data,
                                 design = ~condition)
 
-# Principal Component Analysis 
+# Principal Component Analysis
 rlog_dds <- rlog(dds)
+plotPCA(rlog_dds)
 
 pca_data <- plotPCA(rlog_dds, intgroup = "condition", returnData = TRUE)
 write_rds(pca_data, "outputs/tables/pca_data.rds")
+write_csv(pca_data, "outputs/tables/pca_data.csv")
 
 # Differential Gene Expression Analysis 
 dds <- DESeq(dds)
